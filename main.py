@@ -44,6 +44,14 @@ class User(db.Model):
     pw_hash = db.StringProperty(required = True)
 
 
+class Profile(db.Model):
+    """ information about a user on our site
+    """
+    owner = db.ReferenceProperty(User, required=True)
+    name = db.StringProperty()
+    about = db.TextProperty()
+
+
 class Post(db.Model):
     """ DB schema
     """
@@ -212,29 +220,6 @@ class Front(Handler):
                 last_page=last_page, users=get_users())
 
 
-class Get_posts_by_user_name(Handler):
-    """ like front page but gets entries for only one user
-    """
-    def get(self):
-        limit = 5
-        offset = 0
-        current_page = self.request.get('page')
-        user_name = self.response.get('user_name')
-        print "user: {}".format(user_name)
-        if current_page.isdigit():
-            current_page = int(current_page)
-            offset = (current_page - 1) * limit
-        else:
-            current_page = 1
-        posts, rows = get_posts(limit, offset, user=self.get_user_by_name(user_name))
-        last_page = rows // limit + 1
-        if rows % limit == 0:
-            last_page -= 1
-        self.response.set_cookie('page', str(current_page), path='/')
-        self.render('front.html', posts=posts, page=current_page,
-                last_page=last_page)
-
-
 class NewPost(Handler):
     """ builds a new entry
     """
@@ -253,6 +238,13 @@ class NewPost(Handler):
             error = "subject and content, please!"
             self.render("newpost.html", subject=subject, content=content, users=get_users(),
                         error=error)
+
+
+class ProfileHandler(Handler):
+    """ comes to here when "blogz/<username>/profile" Pressed
+    """
+    def get(self):
+        pass
 
 
 class Next(Handler):
@@ -328,10 +320,18 @@ class Login(Handler):
         submitted_password = self.request.get("password")
 
         user = self.get_user_by_name(submitted_username)
+        errors = {}
+
         if not user:
-            self.render_login_form(error = "Invalid username")
-        elif not hashutils.valid_pw(submitted_username, submitted_password, user.pw_hash):
-            self.render_login_form(error = "Invalid password")
+            errors['username_error'] = "Invalid username"
+
+        if user and not hashutils.valid_pw(submitted_username, submitted_password, user.pw_hash):
+            errors['password_error'] = "Invalid password"
+
+        if errors:
+            t = jinja_env.get_template("register.html")
+            content = t.render(errors={}, user=submitted_username)
+            self.response.out.write(content)
         else:
             self.login_user(user)
             return self.redirect("/")
@@ -377,13 +377,15 @@ class Register(Handler):
             return verify
 
     def get(self):
-        """ Display the registration page """
+        """ Display the registration page
+        """
         t = jinja_env.get_template("register.html")
         content = t.render(errors={})
         self.response.out.write(content)
 
     def post(self):
-        """ User is trying to register """
+        """ User is trying to register
+        """
         submitted_username = self.request.get("username")
         submitted_password = self.request.get("password")
         submitted_verify = self.request.get("verify")
@@ -422,12 +424,16 @@ class Register(Handler):
             t = jinja_env.get_template("register.html")
             content = t.render(username=username, errors=errors)
             self.response.out.write(content)
+            print username, errors
+            # return self.redirect('/register')
         else:
             return self.redirect('/')
 
 
-app = webapp2.WSGIApplication([('/', Front),
+app = webapp2.WSGIApplication([
     webapp2.Route(r'/blogz/<id:\d+>', PostPage),
+    webapp2.Route(r'/blogz/<username:[a-zA-Z0-9_-]{3,20}/profile
+    ('/', Front),
     ('/blogz', Front),
     ('/blogz/', Front),
     ('/blogz/prev', Prev),
