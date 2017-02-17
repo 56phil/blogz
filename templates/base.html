@@ -15,6 +15,11 @@
           <li><a href="/blogz?user={{user.username}}">{{user.username}}</a></li>
         {% endfor %}
       </ul>
+      <ul>
+        {% for user in users %}
+          <li><a href="/blogz/{{user.username}}/profile">{{user.username}}</a></li>
+        {% endfor %}
+      </ul>
     {% endif %}
     <h1>
       <a href="/" class="main-title">That Awesome Blog</a>

@@ -243,7 +243,12 @@ class NewPost(Handler):
 class ProfileHandler(Handler):
     """ comes to here when "blogz/<username>/profile" Pressed
     """
-    def get(self):
+    def get(self, username):
+        print username
+        user = self.get_user_by_name(username)
+        print user.username
+
+    def post(self):
         pass
 
 
@@ -432,7 +437,7 @@ class Register(Handler):
 
 app = webapp2.WSGIApplication([
     webapp2.Route(r'/blogz/<id:\d+>', PostPage),
-    webapp2.Route(r'/blogz/<username:[a-zA-Z0-9_-]{3,20}/profile
+    webapp2.Route(r'/blogz/<username:[a-zA-Z0-9_-]{3,20}>/profile', ProfileHandler),
     ('/', Front),
     ('/blogz', Front),
     ('/blogz/', Front),
