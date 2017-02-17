@@ -84,9 +84,9 @@ def get_posts(limit=5, offset=0, user=None):
     """ gets all posts
     """
     if user:
-        query = Post.all().filter("owner", user)
+        query = Post.all().filter("owner", user).order('-created')
     else:
-        query = Post.all()
+        query = Post.all().order('-created')
     rows = query.count()
     result = query.fetch(limit=limit, offset=offset)
     return (result, rows)
@@ -95,7 +95,7 @@ def get_posts(limit=5, offset=0, user=None):
 def get_users():
     """ returns all users
     """
-    query = User.all()
+    query = User.all().order('username')
     return query.fetch(limit=999, offset=0)
 
 
