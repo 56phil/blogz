@@ -38,12 +38,15 @@ allowed_routes = [
 
 
 class User(db.Model):
-    """ Represents a user on our site """
+    """ Represents a user on our site
+    """
     username = db.StringProperty(required = True)
     pw_hash = db.StringProperty(required = True)
 
 
 class Post(db.Model):
+    """ DB schema
+    """
     owner = db.ReferenceProperty(User, required=True)
     subject = db.StringProperty(required = True)
     content = db.TextProperty(required = True)
@@ -51,41 +54,60 @@ class Post(db.Model):
     last_modified = db.DateTimeProperty(auto_now = True)
 
     def render(self):
+        """ replaces linefeeds with breaks
+        """
         self._render_text = self.content.replace('\n', '<br>')
         return render_str("post.html", p = self)
 
 
 def render_post(response, post):
+    """ puts out post
+    """
     response.out.write('<b>' + post.subject + '</b><br>')
     response.out.write(post.content)
 
 
 def render_str(template, **params):
+    """ puts out string
+    """
     t = jinja_env.get_template(template)
     return t.render(params)
 
 
-def blog_key(name = 'default'):
+def blog_key(name='default'):
+    """ returns key
+    """
     return db.Key.from_path('blogs', name)
 
 
-def get_posts(limit=5, offset=0):
-    q_str = 'select * from Post order by created desc limit {} offset {}'.\
-            format(limit, offset)
-    rows = db.GqlQuery(q_str).count()
-    page_rows = db.GqlQuery(q_str).count(limit=limit, offset=offset)
-    result = db.GqlQuery(q_str)
-    return (result, rows, page_rows)
+def get_posts(limit=5, offset=0, user=None):
+    """ gets all posts
+    """
+    if user:
+        query = Post.all().filter("owner", user)
+    else:
+        query = Post.all()
+    rows = query.count()
+    result = query.fetch(limit=limit, offset=offset)
+    return (result, rows)
+
+
+def get_users():
+    """ returns all users
+    """
+    query = User.all()
+    return query.fetch(limit=999, offset=0)
 
 
 def get_cookies(request):
+    """ converts cookies into a dictioonary
+    """
     cookies = {}
     raw_cookies = request.headers.get("Cookie")
     if raw_cookies:
         for cookie in raw_cookies.split(";"):
-            print cookie
             name, value = cookie.split("=")
-            cookies[name] = value
+            cookies[name.strip()] = value.strip()
     return cookies
 
 
@@ -95,17 +117,20 @@ class Handler(webapp2.RequestHandler):
     """
 
     def renderError(self, error_code):
-        """ Sends an HTTP error code and a generic "oops!" message to the client. """
+        """ Sends an HTTP error code and a generic "oops!" message to the client.
+        """
         self.error(error_code)
         self.response.write("Oops! Something went wrong.")
 
     def login_user(self, user):
-        """ Logs in a user specified by a User object """
+        """ Logs in a user specified by a User object
+        """
         user_id = user.key().id()
         self.set_secure_cookie('user_id', str(user_id))
 
     def logout_user(self):
-        """ Logs out the current user """
+        """ Logs out the current user
+        """
         self.set_secure_cookie('user_id', '')
 
     def read_secure_cookie(self, name):
@@ -117,19 +142,20 @@ class Handler(webapp2.RequestHandler):
             return hashutils.check_secure_val(cookie_val)
 
     def set_secure_cookie(self, name, val):
-        """ Adds a secure name-value pair cookie to the response """
+        """ Adds a secure name-value pair cookie to the response
+        """
         cookie_val = hashutils.make_secure_val(val)
         self.response.headers.add_header('Set-Cookie', '{}={}; Path=/'.\
                 format(name, cookie_val))
 
     def initialize(self, *a, **kw):
         """ Any subclass of webapp2.RequestHandler can implement a method
-        called 'initialize' to specify what should happen before handling a
-        request.
+            called 'initialize' to specify what should happen before handling a
+            request.
 
-        Here, we use it to ensure that the user is logged in. If not, and
-        they try to visit a page that requires an logging in (like /ratings),
-        then we redirect them to the /login page
+            Here, we use it to ensure that the user is logged in. If not, and
+            they try to visit a page that requires an logging in
+            (like /ratings), then we redirect them to the /login page
         """
         webapp2.RequestHandler.initialize(self, *a, **kw)
         uid = self.read_secure_cookie('user_id')
@@ -139,7 +165,8 @@ class Handler(webapp2.RequestHandler):
             return self.redirect('/login')
 
     def get_user_by_name(self, username):
-        """ Given a username, try to fetch the user from the database """
+        """ Given a username, try to fetch the user from the database
+        """
         q_str = "SELECT * from User WHERE username = '{}'".format(username)
         user = db.GqlQuery(q_str)
         if user:
@@ -156,25 +183,61 @@ class Handler(webapp2.RequestHandler):
 
 
 class Front(Handler):
+    """ front page
+    """
     def get(self):
         limit = 5
         offset = 0
         current_page = self.request.get('page')
+        user_name = self.request.get('user')
+
+        if current_page and current_page.isdigit():
+            current_page = int(current_page)
+            offset = (current_page - 1) * limit
+        else:
+            current_page = 1
+
+        if user_name:
+            posts, rows = get_posts(limit, offset, user=self.get_user_by_name(user_name))
+            self.response.set_cookie('user', user_name, path='/')
+        else:
+            posts, rows = get_posts(limit, offset)
+            self.response.set_cookie('user', "", path='/')
+
+        last_page = rows // limit + 1
+        if rows % limit == 0:
+            last_page -= 1
+        self.response.set_cookie('page', str(current_page), path='/')
+        self.render('front.html', posts=posts, page=current_page,
+                last_page=last_page, users=get_users())
+
+
+class Get_posts_by_user_name(Handler):
+    """ like front page but gets entries for only one user
+    """
+    def get(self):
+        limit = 5
+        offset = 0
+        current_page = self.request.get('page')
+        user_name = self.response.get('user_name')
+        print "user: {}".format(user_name)
         if current_page.isdigit():
             current_page = int(current_page)
             offset = (current_page - 1) * limit
         else:
             current_page = 1
-        posts, rows, page_rows = get_posts(limit, offset)
+        posts, rows = get_posts(limit, offset, user=self.get_user_by_name(user_name))
         last_page = rows // limit + 1
         if rows % limit == 0:
             last_page -= 1
         self.response.set_cookie('page', str(current_page), path='/')
-        self.render('front.html', posts = posts, page = current_page,
-                last_page = last_page)
+        self.render('front.html', posts=posts, page=current_page,
+                last_page=last_page)
 
 
 class NewPost(Handler):
+    """ builds a new entry
+    """
     def get(self):
         self.render("newpost.html")
 
@@ -183,9 +246,9 @@ class NewPost(Handler):
         content = self.request.get('content')
 
         if subject and content:
-            p = Post(parent = blog_key(), subject = subject, content = content, owner=self.user)
+            p = Post(parent=blog_key(), subject=subject, content=content, owner=self.user)
             p.put()
-            self.redirect('/blog/{}'.format(p.key().id()))
+            self.redirect('/blogz/{}'.format(p.key().id()))
         else:
             error = "subject and content, please!"
             self.render("newpost.html", subject=subject, content=content,
@@ -193,53 +256,74 @@ class NewPost(Handler):
 
 
 class Next(Handler):
+    """ comes to here when "Next" Pressed
+    """
     def get(self):
         cookies = get_cookies(self.request)
-        current_page = cookies.get('page')
-        if current_page.isdigit():
-            current_page = int(current_page) + 1
+        page = cookies.get('page')
+
+        if page.isdigit():
+            page = int(page) + 1
         else:
-            current_page = 2
-        self.redirect('/blog?page={}'.format(current_page))
+            page = 2
+
+        user = cookies.get('user')
+        if user:
+            self.redirect('/blogz?page={}&user={}'.format(page, user))
+        else:
+            self.redirect('/blogz?page={}'.format(page))
 
 
 class PostPage(Handler):
+    """ renders a post
+    """
     def get(self, *args, **kwargs):
         key = db.Key.from_path('Post', int(kwargs['id']), parent=blog_key())
 
         post = db.get(key)
 
         if post:
-            self.render("permalink.html", post = post)
+            self.render("permalink.html", post=post)
             return
 
         self.error(404)
 
 
 class Prev(Handler):
+    """ comes to here when "Previous" Pressed
+    """
     def get(self):
         cookies = get_cookies(self.request)
-        current_page = cookies.get('page')
-        if current_page.isdigit():
-            current_page = int(current_page) - 1
+        page = cookies.get('page')
+
+        if page.isdigit():
+            page = int(page) - 1
         else:
-            current_page = 1
-        self.redirect('/blog?page={}'.format(current_page))
+            page = 1
+
+        user = cookies.get('user')
+        if user:
+            self.redirect('/blogz?page={}&user={}'.format(page, user))
+        else:
+            self.redirect('/blogz?page={}'.format(page))
 
 
 class Login(Handler):
-
+    """ logs in a user
+    """
     def render_login_form(self, error=""):
         t = jinja_env.get_template("login.html")
         content = t.render(error=error)
         self.response.write(content)
 
     def get(self):
-        """ Display the login page """
+        """ Display the login page
+        """
         self.render_login_form()
 
     def post(self):
-        """ User is trying to log in """
+        """ User is trying to log in
+        """
         submitted_username = self.request.get("username")
         submitted_password = self.request.get("password")
 
@@ -254,7 +338,8 @@ class Login(Handler):
 
 
 class Logout(Handler):
-
+    """ logs out user out
+    """
     def get(self):
         """ User is trying to log out """
         self.logout_user()
@@ -262,7 +347,8 @@ class Logout(Handler):
 
 
 class Register(Handler):
-
+    """ adds a new user
+    """
     def validate_username(self, username):
         """ Returns the username string untouched if it is valid,
             otherwise returns an empty string
@@ -341,12 +427,13 @@ class Register(Handler):
 
 
 app = webapp2.WSGIApplication([('/', Front),
-    webapp2.Route(r'/blog/<id:\d+>', PostPage),
-    ('/blog', Front),
-    ('/blog/', Front),
-    ('/blog/prev', Prev),
-    ('/blog/newpost', NewPost),
-    ('/blog/next', Next),
+    # webapp2.Route(r'/blogz/user/<user_name:^[a-zA-Z0-9_-]{3,20}$>', Get_posts_by_user_name),
+    webapp2.Route(r'/blogz/<id:\d+>', PostPage),
+    ('/blogz', Front),
+    ('/blogz/', Front),
+    ('/blogz/prev', Prev),
+    ('/blogz/newpost', NewPost),
+    ('/blogz/next', Next),
     ('/login', Login),
     ('/logout', Logout),
     ('/register', Register)

@@ -9,11 +9,11 @@
 
   <div id='bottom'>
     {% if page > 1 %}
-      <form action='/blog/prev'><input type='submit' value='Previous Page' class='submit' id=prev /></form>
+      <form action='/blogz/prev'><input type='submit' value='Previous Page' class='submit' id=prev /></form>
     {% endif %}
-    <form action='/blog/newpost'><input type='submit' value='New Entry' class='submit' id='new' /></form>
+    <form action='/blogz/newpost'><input type='submit' value='New Entry' class='submit' id='new' /></form>
     {% if page < last_page %}
-      <form action='/blog/next'><input type='submit' value='Next Page' class='submit' id='next' /></form>
+      <form action='/blogz/next'><input type='submit' value='Next Page' class='submit' id='next' /></form>
     {% endif %}
   </div>
 

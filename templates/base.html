@@ -2,11 +2,22 @@
 <html>
   <head>
     <title>Blogz</title>
-    <link type="text/css" rel="stylesheet" href="/css/blog.css">
+    <link type="text/css" rel="stylesheet" href="/css/blogz.css">
   </head>
   <body>
+    <ul>
+      <li><a href="/">All Posts</a></li>
+      <li><a href="/logout">Log out</a></li>
+    </ul>
+    {% if users  %}
+      <ul>
+        {% for user in users %}
+          <li><a href="/blogz?user={{user.username}}">{{user.username}}</a></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
     <h1>
-      <a href="/blog" class="main-title">That Awesome Blog</a>
+      <a href="/" class="main-title">That Awesome Blog</a>
     </h1>
 
     {% block content %}
