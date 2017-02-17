@@ -251,7 +251,7 @@ class NewPost(Handler):
             self.redirect('/blogz/{}'.format(p.key().id()))
         else:
             error = "subject and content, please!"
-            self.render("newpost.html", subject=subject, content=content,
+            self.render("newpost.html", subject=subject, content=content, users=get_users(),
                         error=error)
 
 
@@ -427,7 +427,6 @@ class Register(Handler):
 
 
 app = webapp2.WSGIApplication([('/', Front),
-    # webapp2.Route(r'/blogz/user/<user_name:^[a-zA-Z0-9_-]{3,20}$>', Get_posts_by_user_name),
     webapp2.Route(r'/blogz/<id:\d+>', PostPage),
     ('/blogz', Front),
     ('/blogz/', Front),
