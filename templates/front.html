@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+  {% for p in posts %}
+    {{ p.render() | safe }}
+    <br><br>
+  {% endfor %}
+
+  <div id='bottom'>
+    {% if page > 1 %}
+      <form action='/blog/prev'><input type='submit' value='Previous Page' class='submit' id=prev /></form>
+    {% endif %}
+    <form action='/blog/newpost'><input type='submit' value='New Entry' class='submit' id='new' /></form>
+    {% if page < last_page %}
+      <form action='/blog/next'><input type='submit' value='Next Page' class='submit' id='next' /></form>
+    {% endif %}
+  </div>
+
+{% endblock %}
