@@ -10,14 +10,24 @@
       <li><a href="/logout">Log out</a></li>
     </ul>
     {% if users  %}
-      <ul>
+      <label for='entries'>Entries:</label>
+      <ul id='entries'>
         {% for user in users %}
-          <li><a href="/blogz?user={{user.username}}">{{user.username}}</a></li>
+          {% if user.username == active_user.username %}
+            <li><a href="/blogz?user={{user.username}}"><span class='active'>{{user.username}}</span></a></li>
+          {% else %}
+            <li><a href="/blogz?user={{user.username}}">{{user.username}}</a></li>
+          {% endif %}
         {% endfor %}
       </ul>
-      <ul>
+      <label for='profiles'>Profiles:</label>
+      <ul id='profiles'>
         {% for user in users %}
-          <li><a href="/blogz/{{user.username}}/profile">{{user.username}}</a></li>
+          {% if user.username == active_user.username %}
+          <li><a href="/blogz/{{user.username}}/profile"><span class='active'>{{user.username}}</span></a></li>
+          {% else %}
+            <li><a href="/blogz/{{user.username}}/profile">{{user.username}}</a></li>
+          {% endif %}
         {% endfor %}
       </ul>
     {% endif %}

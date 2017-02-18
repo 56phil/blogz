@@ -42,14 +42,29 @@ html {
 input {
   width:20rem;
   font-size:1.1rem;
-  padding:2px;
+  margin:.7rem auto;
+  padding:.5rem;
+  text-align:left;
+}
+
+input[type=submit] {
+  background-color:brown;
+  border:2px solid white;
+  border-radius:99%;
+  color:white;
+  display:block;
+  font-family:cursive;
+  font-size:1.1rem;
+  margin:.3rem auto;
+  text-align:left;
+  width:9rem;
 }
 
 label {
   display:block;
   font-family:cursive;
   font-size: 1.4rem;
-  margin:1rem;
+  margin:.1rem 0;
 }
 
 label + label {
@@ -61,8 +76,9 @@ p {
 }
 
 textarea {
-  height:11rem;
   font-size:1.2rem;
+  height:11rem;
+  margin:.4rem auto;
   width:80rem;
 }
 
@@ -104,6 +120,12 @@ li a:hover {
 #prev {
   position:relative;
   top:0;
+}
+
+.active {
+  color:#555;
+  font-size:110%;
+  font-weight:bold;
 }
 
 .error {
@@ -157,6 +179,12 @@ li a:hover {
 
 .post-content {
   margin-top:5px;
+}
+
+.profile {
+  color:#555;
+  font-size:1.5rem;
+  margin:1rem auto;
 }
 
 .submit {

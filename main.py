@@ -20,21 +20,22 @@ import re
 import jinja2
 import webapp2
 import hashutils
+from time import sleep
 from google.appengine.ext import db
 
 # set up jinja
 template_dir=os.path.join(os.path.dirname(__file__), "templates")
 jinja_env=jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
-                             autoescape=True)
+        autoescape=True)
 
 
 # a list of pages that anyone is allowed to visit
 # (any others require logging in)
 allowed_routes = [
-    "/login",
-    "/logout",
-    "/register"
-]
+        "/login",
+        "/logout",
+        "/register"
+        ]
 
 
 class User(db.Model):
@@ -47,9 +48,9 @@ class User(db.Model):
 class Profile(db.Model):
     """ information about a user on our site
     """
-    owner = db.ReferenceProperty(User, required=True)
     name = db.StringProperty()
     about = db.TextProperty()
+    owner = db.ReferenceProperty(User, required=True)
 
 
 class Post(db.Model):
@@ -172,6 +173,14 @@ class Handler(webapp2.RequestHandler):
         if not self.user and self.request.path not in allowed_routes:
             return self.redirect('/login')
 
+    def get_profile_of_user(self, user):
+        """ Given a user, try to fetch their profile from the database
+        """
+        q_str = "SELECT * from Profile WHERE owner = '{}'".format(user)
+        user = db.GqlQuery(q_str)
+        if user:
+            return user.get()
+
     def get_user_by_name(self, username):
         """ Given a username, try to fetch the user from the database
         """
@@ -216,8 +225,12 @@ class Front(Handler):
         if rows % limit == 0:
             last_page -= 1
         self.response.set_cookie('page', str(current_page), path='/')
-        self.render('front.html', posts=posts, page=current_page,
-                last_page=last_page, users=get_users())
+        self.render('front.html',
+                users=get_users(),
+                active_user=self.user,
+                posts=posts,
+                page=current_page,
+                last_page=last_page)
 
 
 class NewPost(Handler):
@@ -236,20 +249,51 @@ class NewPost(Handler):
             self.redirect('/blogz/{}'.format(p.key().id()))
         else:
             error = "subject and content, please!"
-            self.render("newpost.html", subject=subject, content=content, users=get_users(),
-                        error=error)
+            self.render("newpost.html",
+                    subject=subject,
+                    content=content,
+                    users=get_users(),
+                    error=error)
 
 
 class ProfileHandler(Handler):
     """ comes to here when "blogz/<username>/profile" Pressed
     """
     def get(self, username):
-        print username
-        user = self.get_user_by_name(username)
-        print user.username
+        user = self.user
+        if not self.user.username == username:
+            user = self.get_user_by_name(username)
 
-    def post(self):
-        pass
+        query = Profile.all().filter('owner', user)
+        p = query.fetch(limit=1, offset=0)
+
+        if  p:
+            p = p[0]
+        else:
+            p = Profile(parent=blog_key(), owner=user)
+
+        self.render('profile.html',
+                users=get_users(),
+                active_user=self.user,
+                profile=p,
+                requested_user=user)
+
+    def post(self, username):
+        query = Profile.all().filter('owner', self.user)
+        p = query.fetch(limit=1, offset=0)
+
+        if p:
+            p = p[0]
+            p.name = self.request.get('name')
+            p.about = self.request.get('about')
+        else:
+            p = Profile(parent=blog_key(), owner=self.user,
+                    name=self.request.get('name'),
+                    about=self.request.get('about'))
+
+        p.put()
+        sleep(.1)
+        self.redirect('/blogz/{}/profile'.format(username))
 
 
 class Next(Handler):
@@ -280,7 +324,10 @@ class PostPage(Handler):
         post = db.get(key)
 
         if post:
-            self.render("permalink.html", post=post)
+            self.render("permalink.html",
+                    users=get_users(),
+                    active_user=self.user,
+                    post=post)
             return
 
         self.error(404)
@@ -309,9 +356,8 @@ class Login(Handler):
     """ logs in a user
     """
     def render_login_form(self, error=""):
-        t = jinja_env.get_template("login.html")
-        content = t.render(error=error)
-        self.response.write(content)
+        self.render('login.html',
+                error=error)
 
     def get(self):
         """ Display the login page
@@ -334,9 +380,8 @@ class Login(Handler):
             errors['password_error'] = "Invalid password"
 
         if errors:
-            t = jinja_env.get_template("register.html")
-            content = t.render(errors={}, user=submitted_username)
-            self.response.out.write(content)
+            self.render('register.html',
+                    user=submitted_username)
         else:
             self.login_user(user)
             return self.redirect("/")
@@ -427,10 +472,8 @@ class Register(Handler):
 
         if has_error:
             t = jinja_env.get_template("register.html")
-            content = t.render(username=username, errors=errors)
+            content = self.render('register', username=username, errors=errors)
             self.response.out.write(content)
-            print username, errors
-            # return self.redirect('/register')
         else:
             return self.redirect('/')
 

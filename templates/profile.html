@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Profile</h2>
+{% if requested_user.username == active_user.username %}
+  <form method='post'>
+    <label for='name'>Name:</label>
+    <input type='text' name='name' id='name' value='{{profile.name}}'/>
+    <label for='about'>Dossier:</label>
+    <textarea name='about' id='about'>{{profile.about}}</textarea>
+    <label for='username'>User Name:</label>
+    <input type='text' name='username' id='username' value='{{profile.owner.username}}'/>
+    <input type='submit' value='Update Profile' />
+  </form>
+{% else %}
+  <table class='profile'>
+    <tr>
+      <td>Name:</td>
+      <td>{{profile.name}}</td>
+    </tr>
+    <tr>
+      <td>About:</td>
+      <td>{{profile.about}}</td>
+    </tr>
+    <tr>
+      <td>User name:</td>
+      <td>{{profile.owner.username}}</td>
+    </tr>
+  </table>
+{% endif %}
+{% endblock %}
