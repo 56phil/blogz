@@ -4,6 +4,10 @@ a {
   text-decoration:none;
 }
 
+a:hover {
+  background-color: #ddd;
+}
+
 body {
   background:AntiqueWhite;
   color: #111;
@@ -56,7 +60,7 @@ input[type=submit] {
   font-family:cursive;
   font-size:1.1rem;
   margin:.3rem auto;
-  text-align:left;
+  text-align:center;
   width:9rem;
 }
 
@@ -75,11 +79,23 @@ p {
   padding:0.8rem 0.2rem;
 }
 
+table {
+  margin:0 auto;
+}
+
 textarea {
   font-size:1.2rem;
   height:11rem;
   margin:.4rem auto;
   width:80rem;
+}
+
+td, th {
+  padding:0 .5rem;
+}
+
+th {
+  border:1px solid black;
 }
 
 ul {
@@ -188,7 +204,7 @@ li a:hover {
 }
 
 .submit {
-  background:brown;
+  background:green;
   border:2px solid white;
   border-radius: 99%;
   color:white;

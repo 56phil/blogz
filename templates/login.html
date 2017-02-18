@@ -3,16 +3,14 @@
 {% block content %}
 <h1>Login</h1>
 <form method="post">
+        {% if error %}
+          <span class="error">{{ error }}</span>
+        {% endif %}
   <table>
     <tr>
       <td><label for="username">Username</label></td>
       <td>
         <input name="username" type="text" value="{{ user }}">
-      </td>
-      <td>
-        {% if errors %}
-          <span class="error">{{ errors['username_error'] }}</span>
-        {% endif %}
       </td>
     </tr>
     <tr>
@@ -21,16 +19,11 @@
           <input name="password" type="password">
       </td>
       <td>
-        {% if errors %}
-          <span class="error">{{ errors['password_error'] }}</span>
-        {% endif %}
       </td>
     </tr>
     <tr>
       <td>
         <input type="submit" class="submit" value="Login">
-      </td>
-      <td>
       </td>
     </tr>
   </table>

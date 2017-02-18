@@ -184,7 +184,7 @@ class Handler(webapp2.RequestHandler):
     def get_user_by_name(self, username):
         """ Given a username, try to fetch the user from the database
         """
-        q_str = "SELECT * from User WHERE username = '{}'".format(username)
+        q_str = "SELECT * FROM User WHERE username = '{}'".format(username)
         user = db.GqlQuery(q_str)
         if user:
             return user.get()
@@ -225,8 +225,11 @@ class Front(Handler):
         if rows % limit == 0:
             last_page -= 1
         self.response.set_cookie('page', str(current_page), path='/')
+
+        users = get_users()
         self.render('front.html',
-                users=get_users(),
+                users=users,
+                l=len(users),
                 active_user=self.user,
                 posts=posts,
                 page=current_page,
@@ -249,10 +252,13 @@ class NewPost(Handler):
             self.redirect('/blogz/{}'.format(p.key().id()))
         else:
             error = "subject and content, please!"
+
+            users=get_users()
             self.render("newpost.html",
                     subject=subject,
                     content=content,
-                    users=get_users(),
+                    users=users,
+                    l=len(users),
                     error=error)
 
 
@@ -272,8 +278,10 @@ class ProfileHandler(Handler):
         else:
             p = Profile(parent=blog_key(), owner=user)
 
+        users = get_users()
         self.render('profile.html',
-                users=get_users(),
+                users=users,
+                l=len(users),
                 active_user=self.user,
                 profile=p,
                 requested_user=user)
@@ -324,8 +332,10 @@ class PostPage(Handler):
         post = db.get(key)
 
         if post:
+            users=get_users()
             self.render("permalink.html",
-                    users=get_users(),
+                    users=users,
+                    l=len(users),
                     active_user=self.user,
                     post=post)
             return
@@ -355,7 +365,7 @@ class Prev(Handler):
 class Login(Handler):
     """ logs in a user
     """
-    def render_login_form(self, error=""):
+    def render_login_form(self, error=''):
         self.render('login.html',
                 error=error)
 
@@ -371,17 +381,18 @@ class Login(Handler):
         submitted_password = self.request.get("password")
 
         user = self.get_user_by_name(submitted_username)
-        errors = {}
+
+        error = ''
 
         if not user:
-            errors['username_error'] = "Invalid username"
-
-        if user and not hashutils.valid_pw(submitted_username, submitted_password, user.pw_hash):
-            errors['password_error'] = "Invalid password"
-
-        if errors:
-            self.render('register.html',
-                    user=submitted_username)
+            error = "Invalid username"
+            self.render('login.html',
+                    user=submitted_username, error=error)
+        elif user and not hashutils.valid_pw(submitted_username,
+                submitted_password, user.pw_hash):
+            error = "Invalid password"
+            self.render('login.html',
+                    user=submitted_username, error=error)
         else:
             self.login_user(user)
             return self.redirect("/")
@@ -472,7 +483,7 @@ class Register(Handler):
 
         if has_error:
             t = jinja_env.get_template("register.html")
-            content = self.render('register', username=username, errors=errors)
+            content = self.render('register.html', username=username, errors=errors)
             self.response.out.write(content)
         else:
             return self.redirect('/')
